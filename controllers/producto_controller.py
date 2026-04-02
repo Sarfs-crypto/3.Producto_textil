@@ -1,6 +1,4 @@
-"""
-Controlador para gestión de productos
-"""
+
 import tkinter as tk
 from tkinter import messagebox
 from models.producto_model import ProductoModel
