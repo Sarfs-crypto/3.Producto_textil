@@ -1,8 +1,6 @@
 __pycache__/
 *.pyc
-*.pyo
 .idea/
-.vscode/
-assets/images/*.jpg
-assets/images/*.png
-.idea/
+*.db
+venv/
+.env
