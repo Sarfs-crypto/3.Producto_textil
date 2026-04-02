@@ -1,150 +1,138 @@
 """
-Script para crear la base de datos SQLite de TextilPro
+Script para crear la base de datos SQLite desde cero
+Ejecutar: python crear_bd_limpio.py
 """
 import sqlite3
 import os
 
 
 def crear_base_datos():
-    # Ruta de la base de datos
-    db_path = os.path.join('base_datos', 'textilpro.db')
-
     # Crear carpeta si no existe
     os.makedirs('base_datos', exist_ok=True)
 
-    # Eliminar si existe
+    # Eliminar archivo antiguo si existe
+    db_path = 'base_datos/textil.db'
     if os.path.exists(db_path):
         os.remove(db_path)
+        print(f"✓ Archivo antiguo eliminado: {db_path}")
 
     # Conectar a la base de datos (la crea automáticamente)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Crear tabla de productos
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS productos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        codigo VARCHAR(50) UNIQUE NOT NULL,
-        nombre VARCHAR(200) NOT NULL,
-        descripcion TEXT,
-        categoria VARCHAR(100),
-        talla VARCHAR(10),
-        color VARCHAR(50),
-        precio_compra DECIMAL(10,2) NOT NULL,
-        precio_venta DECIMAL(10,2) NOT NULL,
-        stock INTEGER NOT NULL DEFAULT 0,
-        stock_minimo INTEGER DEFAULT 5,
-        imagen_path VARCHAR(500),
-        fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
-        estado BOOLEAN DEFAULT 1
-    )
-    ''')
+    print("📁 Creando base de datos...")
 
-    # Crear tabla de proveedores
+    # ========== TABLA: CLIENTES ==========
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS proveedores (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ruc VARCHAR(20) UNIQUE NOT NULL,
-        nombre VARCHAR(200) NOT NULL,
-        contacto VARCHAR(100),
-        telefono VARCHAR(20),
-        email VARCHAR(100),
-        direccion TEXT,
-        imagen_path VARCHAR(500),
-        fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
-        estado BOOLEAN DEFAULT 1
-    )
+        CREATE TABLE clientes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            telefono TEXT,
+            email TEXT,
+            direccion TEXT,
+            imagen_path TEXT,
+            fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
     ''')
+    print("✓ Tabla 'clientes' creada")
 
-    # Crear tabla de ventas
+    # ========== TABLA: PRODUCTOS ==========
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS ventas (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        codigo_venta VARCHAR(20) UNIQUE NOT NULL,
-        fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
-        cliente VARCHAR(200),
-        total DECIMAL(10,2) NOT NULL,
-        estado VARCHAR(20) DEFAULT 'completada'
-    )
+        CREATE TABLE productos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            descripcion TEXT,
+            precio REAL NOT NULL,
+            stock INTEGER DEFAULT 0,
+            imagen_path TEXT,
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
     ''')
+    print("✓ Tabla 'productos' creada")
 
-    # Crear tabla de detalles de venta
+    # ========== TABLA: PEDIDOS ==========
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS venta_detalles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        venta_id INTEGER NOT NULL,
-        producto_id INTEGER NOT NULL,
-        cantidad INTEGER NOT NULL,
-        precio_unitario DECIMAL(10,2) NOT NULL,
-        subtotal DECIMAL(10,2) NOT NULL,
-        FOREIGN KEY (venta_id) REFERENCES ventas(id),
-        FOREIGN KEY (producto_id) REFERENCES productos(id)
-    )
+        CREATE TABLE pedidos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cliente_id INTEGER,
+            producto_id INTEGER,
+            cantidad INTEGER NOT NULL,
+            fecha_pedido DATE NOT NULL,
+            fecha_entrega DATE,
+            estado TEXT DEFAULT 'pendiente',
+            FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL,
+            FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE SET NULL
+        )
     ''')
+    print("✓ Tabla 'pedidos' creada")
 
-    # Insertar datos de ejemplo
-    productos_ejemplo = [
-        ('TEL001', 'Algodón Premium', 'Algodón 100% orgánico', 'Telas', 'Rollo', 'Blanco', 25.00, 45.00, 100),
-        ('TEL002', 'Seda Natural', 'Seda pura de alta calidad', 'Telas', 'Rollo', 'Crudo', 80.00, 150.00, 50),
-        ('CAM001', 'Camisa Casual', 'Camisa de algodón para caballero', 'Prendas', 'M', 'Azul', 15.00, 35.00, 80),
-        ('CAM002', 'Camisa Formal', 'Camisa de vestir manga larga', 'Prendas', 'L', 'Blanco', 20.00, 45.00, 60),
-        ('PAN001', 'Pantalón Jean', 'Jean clásico azul', 'Prendas', '32', 'Azul', 25.00, 55.00, 40),
-        ('HIL001', 'Hilo Poliéster', 'Hilo de alta resistencia', 'Insumos', '500m', 'Negro', 5.00, 12.00, 200),
+    # ========== DATOS DE EJEMPLO ==========
+
+    # Insertar clientes de ejemplo
+    clientes = [
+        ('Ana Martínez', '3001234567', 'ana@textil.com', 'Calle 1 #2-3', None),
+        ('Carlos López', '3109876543', 'carlos@textil.com', 'Carrera 4 #5-6', None),
+        ('María García', '3209876543', 'maria@textil.com', 'Avenida 7 #8-9', None),
+        ('Juan Pérez', '3112223344', 'juan@textil.com', 'Calle 10 #11-12', None),
     ]
 
     cursor.executemany('''
-        INSERT INTO productos (codigo, nombre, descripcion, categoria, talla, color, precio_compra, precio_venta, stock)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', productos_ejemplo)
+        INSERT INTO clientes (nombre, telefono, email, direccion, imagen_path)
+        VALUES (?, ?, ?, ?, ?)
+    ''', clientes)
+    print(f"✓ {len(clientes)} clientes insertados")
 
-    # Proveedores de ejemplo
-    proveedores_ejemplo = [
-        ('20123456789', 'Textiles del Perú SAC', 'Juan Pérez', '987654321', 'ventas@textilesperu.com',
-         'Av. Industrial 123, Lima'),
-        ('20987654321', 'Insumos Textiles EIRL', 'María López', '987654322', 'maria@insumostextiles.com',
-         'Calle Comercio 456, Arequipa'),
-        ('20456789012', 'Moda Express SAC', 'Carlos Ruiz', '987654323', 'carlos@modaexpress.com',
-         'Jr. La Moda 789, Trujillo'),
+    # Insertar productos de ejemplo
+    productos = [
+        ('Camiseta Algodón', 'Camiseta 100% algodón, varios colores', 25000.00, 100, None),
+        ('Pantalón Jeans', 'Pantalón denim azul, tela resistente', 89000.00, 50, None),
+        ('Chaqueta Poliéster', 'Chaqueta impermeable para exteriores', 120000.00, 30, None),
+        ('Bufanda Lana', 'Bufanda de lana de oveja, color gris', 35000.00, 75, None),
+        ('Gorra Deportiva', 'Gorra con visera curva, ajustable', 28000.00, 120, None),
     ]
 
     cursor.executemany('''
-        INSERT INTO proveedores (ruc, nombre, contacto, telefono, email, direccion)
+        INSERT INTO productos (nombre, descripcion, precio, stock, imagen_path)
+        VALUES (?, ?, ?, ?, ?)
+    ''', productos)
+    print(f"✓ {len(productos)} productos insertados")
+
+    # Insertar pedidos de ejemplo
+    pedidos = [
+        (1, 1, 2, '2024-01-15', '2024-01-20', 'completado'),
+        (2, 2, 1, '2024-01-20', '2024-01-25', 'en proceso'),
+        (1, 3, 1, '2024-01-25', None, 'pendiente'),
+        (3, 1, 3, '2024-02-01', '2024-02-05', 'completado'),
+        (4, 4, 2, '2024-02-10', None, 'pendiente'),
+    ]
+
+    cursor.executemany('''
+        INSERT INTO pedidos (cliente_id, producto_id, cantidad, fecha_pedido, fecha_entrega, estado)
         VALUES (?, ?, ?, ?, ?, ?)
-    ''', proveedores_ejemplo)
-
-    # Ventas de ejemplo
-    cursor.execute('''
-        INSERT INTO ventas (codigo_venta, cliente, total)
-        VALUES ('VENTA001', 'Cliente Mayorista', 1250.00)
-    ''')
-
-    cursor.execute('''
-        INSERT INTO ventas (codigo_venta, cliente, total)
-        VALUES ('VENTA002', 'Tienda de Ropa La Elegante', 850.00)
-    ''')
+    ''', pedidos)
+    print(f"✓ {len(pedidos)} pedidos insertados")
 
     # Confirmar cambios
     conn.commit()
 
-    # Verificar que se creó correctamente
+    # Verificar resultados
+    cursor.execute("SELECT COUNT(*) FROM clientes")
+    count_clientes = cursor.fetchone()[0]
     cursor.execute("SELECT COUNT(*) FROM productos")
-    count = cursor.fetchone()[0]
-    print(f"✓ Base de datos creada correctamente")
-    print(f"  - Productos: {count}")
+    count_productos = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM pedidos")
+    count_pedidos = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM proveedores")
-    count = cursor.fetchone()[0]
-    print(f"  - Proveedores: {count}")
-
-    cursor.execute("SELECT COUNT(*) FROM ventas")
-    count = cursor.fetchone()[0]
-    print(f"  - Ventas: {count}")
-
-    # Cerrar conexión
-    cursor.close()
     conn.close()
 
-    print(f"\nBase de datos guardada en: {db_path}")
+    print("\n" + "=" * 50)
+    print("✅ BASE DE DATOS CREADA EXITOSAMENTE")
+    print("=" * 50)
+    print(f"Ubicación: {db_path}")
+    print(f"Clientes: {count_clientes}")
+    print(f"Productos: {count_productos}")
+    print(f"Pedidos: {count_pedidos}")
+    print("=" * 50)
 
 
 if __name__ == "__main__":

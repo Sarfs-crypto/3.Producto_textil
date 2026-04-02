@@ -1,13 +1,11 @@
 """
 Controlador para gestión de clientes
-Cumple con: Validaciones, confirmación antes de eliminar
 """
 from tkinter import messagebox
 from models.cliente_model import ClienteModel
 from utils.validators import Validators
 from utils.exporters import Exporters
 from utils.image_handler import ImageHandler
-
 
 class ClienteController:
     def __init__(self, main_controller):
@@ -23,18 +21,25 @@ class ClienteController:
     def cargar_datos(self):
         if self.view:
             datos = self.model.listar_todos()
-            self.view.actualizar_tabla(datos)
+            self.view.actualizar_tabla(datos if datos else [])
 
     def obtener_por_id(self, id):
         return self.model.obtener_por_id(id)
 
     def guardar(self, datos, actual=None):
-        # Validaciones
-        if not Validators.validar_longitud(datos.get('nombre', ''), 3, 100):
+        # Validar nombre
+        nombre = datos.get('nombre', '').strip()
+        if not nombre:
+            messagebox.showerror("Error", "El nombre es obligatorio")
+            return False
+
+        if not Validators.validar_longitud(nombre, 3, 100):
             messagebox.showerror("Error", "El nombre debe tener entre 3 y 100 caracteres")
             return False
 
-        if datos.get('email') and not Validators.validar_email(datos['email']):
+        # Validar email
+        email = datos.get('email', '').strip()
+        if email and not Validators.validar_email(email):
             messagebox.showerror("Error", "Formato de email inválido.\nEjemplo: usuario@dominio.com")
             return False
 
@@ -42,40 +47,66 @@ class ClienteController:
         imagen_path = None
         if self.imagen_actual:
             imagen_path = self.image_handler.procesar_imagen(self.imagen_actual)
+            print(f"DEBUG - Imagen procesada: {imagen_path}")
 
-        if actual and actual.get('id'):
-            exito = self.model.actualizar(
-                actual['id'],
-                datos['nombre'],
-                datos.get('telefono', ''),
-                datos.get('email', ''),
-                datos.get('direccion', ''),
-                imagen_path
-            )
-            if exito:
-                messagebox.showinfo("Éxito", "Cliente actualizado correctamente")
-        else:
-            id = self.model.insertar(
-                datos['nombre'],
-                datos.get('telefono', ''),
-                datos.get('email', ''),
-                datos.get('direccion', ''),
-                imagen_path
-            )
-            if id:
-                messagebox.showinfo("Éxito", f"Cliente guardado con ID: {id}")
+        try:
+            if actual and actual.get('id'):
+                # ACTUALIZAR
+                print(f"DEBUG - Actualizando cliente ID: {actual['id']}")
+                exito = self.model.actualizar(
+                    actual['id'],
+                    nombre,
+                    datos.get('telefono', ''),
+                    email,
+                    datos.get('direccion', ''),
+                    imagen_path
+                )
+                if exito:
+                    messagebox.showinfo("Éxito", "Cliente actualizado correctamente")
+                    self.cargar_datos()
+                    return True
+                else:
+                    messagebox.showerror("Error", "No se pudo actualizar el cliente")
+                    return False
+            else:
+                # INSERTAR NUEVO
+                print("DEBUG - Insertando nuevo cliente")
+                nuevo_id = self.model.insertar(
+                    nombre,
+                    datos.get('telefono', ''),
+                    email,
+                    datos.get('direccion', ''),
+                    imagen_path
+                )
+                print(f"DEBUG - ID generado: {nuevo_id}")
 
+                if nuevo_id:
+                    messagebox.showinfo("Éxito", f"Cliente guardado con ID: {nuevo_id}")
+                    self.cargar_datos()
+                    self.limpiar_formulario()
+                    return True
+                else:
+                    messagebox.showerror("Error", "No se pudo guardar el cliente. Verifique que el email no esté duplicado.")
+                    return False
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al guardar: {str(e)}")
+            return False
+        finally:
+            self.imagen_actual = None
+
+    def limpiar_formulario(self):
+        """Limpiar el formulario desde el controlador"""
+        if self.view:
+            self.view.limpiar()
         self.imagen_actual = None
-        self.cargar_datos()
-        return True
 
     def eliminar(self, id):
-        """Eliminar cliente con confirmación"""
-        if messagebox.askyesno("Confirmar eliminación",
-                               "¿Está SEGURO de eliminar este cliente?\nEsta acción no se puede deshacer."):
+        if messagebox.askyesno("Confirmar", "¿Está seguro de eliminar este cliente?"):
             if self.model.eliminar(id):
                 messagebox.showinfo("Éxito", "Cliente eliminado correctamente")
                 self.cargar_datos()
+                if self.view:
+                    self.view.limpiar()
                 return True
             else:
                 messagebox.showerror("Error", "No se pudo eliminar el cliente")
@@ -84,7 +115,7 @@ class ClienteController:
     def buscar(self, busqueda):
         if self.view:
             resultados = self.model.buscar(busqueda)
-            self.view.actualizar_tabla(resultados)
+            self.view.actualizar_tabla(resultados if resultados else [])
 
     def exportar_excel(self):
         datos = self.model.listar_todos()

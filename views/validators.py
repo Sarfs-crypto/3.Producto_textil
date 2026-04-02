@@ -1,7 +1,3 @@
-"""
-Módulo de validaciones
-Cumple con: Validación de email (regex), campos numéricos, longitud de texto
-"""
 import re
 from datetime import datetime
 

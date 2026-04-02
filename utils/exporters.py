@@ -1,6 +1,4 @@
-"""
-Módulo de exportación a Excel y PDF
-"""
+
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from reportlab.lib import colors

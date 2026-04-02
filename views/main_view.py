@@ -19,8 +19,8 @@ class MainView:
         # Configurar ventana
         self.root.title("TextilPro - Sistema de Gestión Textil")
         self.root.geometry("1400x800")
+        # Línea 22 aproximadamente
         self.root.configure(bg=self.current_theme['bg'])
-
         # Crear menú
         self.crear_menu()
 
