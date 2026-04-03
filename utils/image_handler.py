@@ -1,7 +1,4 @@
-"""
-Módulo de manejo profesional de imágenes con PILLOW
-Cumple con: Redimensionamiento, validación de formatos (JPG, PNG, GIF) y tamaño
-"""
+
 from PIL import Image, ImageTk, ImageFilter, ImageEnhance
 from tkinter import filedialog, messagebox
 import os
